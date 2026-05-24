@@ -1,7 +1,8 @@
 from pydantic import BaseModel
-
+from typing import Optional
 class ProjectBase(BaseModel):
     title: str
+    description: Optional[str] = None
 
 class ProjectCreateSchema(ProjectBase):
     pass

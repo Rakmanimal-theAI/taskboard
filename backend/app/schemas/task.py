@@ -20,7 +20,5 @@ class TaskCreateSchema(TaskBase):
 class TaskResponseSchema(TaskBase):
     id: int
     status: TaskStatus = TaskStatus.todo
-    project_id: int
-
     class Config:
         from_attributes = True

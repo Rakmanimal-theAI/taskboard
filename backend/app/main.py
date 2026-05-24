@@ -3,11 +3,20 @@ from .routers import auth, projects, tasks
 import uvicorn
 from .dependencies import get_current_user
 from .database import User
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(
     title="TaskBoard API",
     description="A simple API for managing tasks and projects",
     version="1.0.0"
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 app.include_router(auth.router)
