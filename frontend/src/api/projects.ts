@@ -1,15 +1,17 @@
 import apiClient from './client'
 
-interface ProjectCreate {
+export interface ProjectCreate {
     title: string
+    description?: string
 }
-interface ProjectResponse {
+export interface ProjectResponse {
     id: number
     title: string
+    description?: string
     owner_id: number
 }
 
-interface ProjectMessage {
+export interface ProjectMessage {
     message: string
 }
 
@@ -28,8 +30,8 @@ export const createProject = async(data: ProjectCreate): Promise<ProjectResponse
     return response.data
 }
 
-export const updateProject = async(id: number, data:ProjectCreate): Promise<ProjectMessage> => {
-    const response = await apiClient.put<ProjectMessage>(`/api/projects/${id}`, data)
+export const updateProject = async(id: number, data:ProjectCreate): Promise<ProjectResponse> => {
+    const response = await apiClient.put<ProjectResponse>(`/api/projects/${id}`, data)
     return response.data
 }
 

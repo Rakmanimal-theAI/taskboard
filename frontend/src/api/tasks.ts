@@ -1,28 +1,28 @@
 import apiClient from './client'
 
-interface TaskResponse {
+export interface TaskResponse {
     id: number
     title: string
     status: string
     priority: string
     assignee_id: number
-    due_date: string,
-    project_id: number
+    due_date: string
 }
 
-interface TaskMessage {
+export interface TaskMessage {
     message: string
 }
 
-interface TaskCreate {
+export interface TaskCreate {
     title: string
     priority: string
+    status?: string
     due_date?: string
     assignee_id?: number
 }
 
 export const getTasks = async(project_id: number): Promise<TaskResponse[]> => {
-    const response = await apiClient<TaskResponse[]>(`api/projects/${project_id}/tasks`)
+    const response = await apiClient.get<TaskResponse[]>(`api/projects/${project_id}/tasks`)
     return response.data
 }
 

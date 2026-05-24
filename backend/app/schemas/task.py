@@ -20,7 +20,7 @@ class TaskBase(BaseModel):
     due_date: Optional[datetime] = None
 
 class TaskCreateSchema(TaskBase):
-    pass
+    status: Optional[TaskStatus] = TaskStatus.todo
 
 class TaskResponseSchema(TaskBase):
     id: int

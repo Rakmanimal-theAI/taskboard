@@ -1,18 +1,18 @@
 import apiClient from './client'
-interface LoginCredentials {
+export interface LoginCredentials {
     email: string
     password: string
 }
-interface Registration {
+export interface Registration {
     name: string,
     email: string
     password: string
 }
-interface AuthResponse {
+export interface AuthResponse {
     access_token: string
     token_type: string
 }
-interface UserResponse {
+export interface UserResponse {
     id: number
     name: string
     email: string

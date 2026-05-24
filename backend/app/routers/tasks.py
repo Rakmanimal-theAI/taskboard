@@ -57,6 +57,8 @@ async def update(project_id: int, id: int, task:TaskCreateSchema, db: Session = 
     task_updated = db.query(Task).filter(Task.id == id, Task.project_id == project_id).first()
     if not task_updated:
         raise HTTPException(status_code=404, detail="Task not found")
+    if task.status is not None:
+        task_updated.status = task.status.value
     task_updated.title = task.title
     task_updated.priority = task.priority
     task_updated.due_date = task.due_date
