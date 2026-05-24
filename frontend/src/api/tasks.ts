@@ -22,7 +22,7 @@ export interface TaskCreate {
 }
 
 export const getTasks = async(project_id: number): Promise<TaskResponse[]> => {
-    const response = await apiClient.get<TaskResponse[]>(`api/projects/${project_id}/tasks`)
+    const response = await apiClient.get<TaskResponse[]>(`/api/projects/${project_id}/tasks`)
     return response.data
 }
 

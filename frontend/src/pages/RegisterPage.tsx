@@ -16,7 +16,7 @@ const RegisterPage = () => {
         setLoading(true)
         setError(null)
         try {
-            const response = await register({ name, email, password })
+            await register({ name, email, password })
             navigate('/login')
         } catch (err) {
             setError('Invalid name, email or password')
@@ -52,6 +52,15 @@ const RegisterPage = () => {
               {loading ? 'Signing up...' : 'Sign up'}
             </button>
           </form>
+          <p className="text-sm text-center text-gray-500">
+            Already have an account?{' '}
+            <span
+              onClick={() => navigate('/login')}
+              className="text-blue-600 cursor-pointer hover:underline"
+            >
+              Log in
+            </span>
+          </p>
         </div>
     )
 }
