@@ -9,49 +9,41 @@ from sqlalchemy.orm import sessionmaker
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.main import app
-from app.database import Base, get_db
+from app.database import Base
+from app.dependencies import get_db
 
-# Test database (use separate DB for testing)
-SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"  # or postgresql://test:test@localhost/test_db
-engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
+SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
+
+engine = create_engine(
+    SQLALCHEMY_DATABASE_URL,
+    connect_args={"check_same_thread": False}
+)
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 @pytest.fixture(scope="function")
 def db_session() -> Generator:
-    """Create a fresh database session for each test"""
-    # Create tables
     Base.metadata.create_all(bind=engine)
-    
-    # Create a new session
     db = TestingSessionLocal()
     try:
         yield db
     finally:
         db.close()
-    
-    # Clean up after test
-    Base.metadata.drop_all(bind=engine)
+        Base.metadata.drop_all(bind=engine)
 
 @pytest.fixture(scope="function")
 def client(db_session) -> Generator:
-    """Create a test client with overridden database dependency"""
-    
     def override_get_db():
         try:
             yield db_session
         finally:
             pass
-    
     app.dependency_overrides[get_db] = override_get_db
-    
     with TestClient(app) as test_client:
         yield test_client
-    
     app.dependency_overrides.clear()
 
 @pytest.fixture
-def sample_user_register_data():
-    """Sample data for user registration tests"""
+def sample_user_data():
     return {
         "email": "test@example.com",
         "name": "testuser",
@@ -59,35 +51,41 @@ def sample_user_register_data():
     }
 
 @pytest.fixture
-def sample_user_login_data():
-    """Sample data for user login tests"""
-    return {
-        "email": "test@example.com",
-        "password": "securepassword123"
-    }
-
-@pytest.fixture
 def sample_project_data():
-    """Sample data for creating project via API"""
     return {
-        "title": "Dashboard project",
-        "description": "This project is a full-stack project to deal with projects and tasks progression."
-    }
-
-@pytest.fixture
-def sample_project_data():
-    """Sample data for creating project via API"""
-    return {
-        "title": "Dashboard project",
-        "description": "This project is a full-stack project to deal with projects and tasks progression."
+        "title": "Test Project",
+        "description": "A test project description"
     }
 
 @pytest.fixture
 def sample_task_data():
-    """Sample data for creating task via API"""
     return {
-        "title": "First task",
-        "priority": "in_progress",
-        "assignee_id": "1",
+        "title": "Test Task",
+        "priority": "medium",
         "due_date": "2027-05-13T14:30:00"
     }
+
+@pytest.fixture
+def registered_user(client, sample_user_data):
+    """Register a user and return the response data"""
+    response = client.post("/auth/register", json=sample_user_data)
+    assert response.status_code == 200
+    return response.json()
+
+@pytest.fixture
+def auth_headers(client, sample_user_data, registered_user):
+    """Register, login, and return auth headers"""
+    response = client.post("/auth/login", json={
+        "email": sample_user_data["email"],
+        "password": sample_user_data["password"]
+    })
+    assert response.status_code == 200
+    token = response.json()["access_token"]
+    return {"Authorization": f"Bearer {token}"}
+
+@pytest.fixture
+def created_project(client, auth_headers, sample_project_data):
+    """Create a project and return it"""
+    response = client.post("/api/projects", json=sample_project_data, headers=auth_headers)
+    assert response.status_code == 200
+    return response.json()

@@ -1,113 +1,48 @@
 import pytest
 from pydantic import ValidationError
-from app.schemas import UserCreate, UserResponse, ItemCreate, ItemResponse
+from app.schemas.user import UserCreateSchema, UserResponseSchema
+from app.schemas.project import ProjectCreateSchema, ProjectResponseSchema
+from app.schemas.task import TaskCreateSchema, TaskResponseSchema, TaskPriority
 
 class TestUserSchemas:
-    """Test Pydantic schemas for User"""
-    
     def test_valid_user_create(self):
-        """Test valid user creation schema"""
-        user_data = {
-            "email": "user@example.com",
-            "username": "validuser",
-            "password": "StrongP@ss123"
-        }
-        user = UserCreate(**user_data)
-        
+        user = UserCreateSchema(email="user@example.com", name="validuser", password="pass123")
         assert user.email == "user@example.com"
-        assert user.username == "validuser"
-        assert user.password == "StrongP@ss123"
-    
-    def test_invalid_email_format(self):
-        """Test invalid email raises validation error"""
-        user_data = {
-            "email": "notanemail",
-            "username": "user",
-            "password": "pass123"
-        }
-        
-        with pytest.raises(ValidationError) as exc_info:
-            UserCreate(**user_data)
-        
-        assert "value is not a valid email address" in str(exc_info.value)
-    
-    def test_missing_required_fields(self):
-        """Test missing required fields"""
-        user_data = {
-            "email": "user@example.com"
-            # missing username and password
-        }
-        
-        with pytest.raises(ValidationError) as exc_info:
-            UserCreate(**user_data)
-        
-        errors = exc_info.value.errors()
-        assert any(e['loc'][0] == 'username' for e in errors)
-        assert any(e['loc'][0] == 'password' for e in errors)
-    
-    def test_username_min_length(self):
-        """Test username minimum length"""
-        user_data = {
-            "email": "test@example.com",
-            "username": "ab",  # assuming min length is 3
-            "password": "pass123"
-        }
-        
-        with pytest.raises(ValidationError):
-            UserCreate(**user_data)
-    
-    def test_user_response_serialization(self, db_session):
-        """Test UserResponse schema from ORM model"""
-        from app.models import User
-        
-        user = User(
-            id=1,
-            email="test@example.com",
-            username="testuser",
-            created_at="2024-01-01T00:00:00"
-        )
-        
-        response = UserResponse.model_validate(user)
-        
-        assert response.id == 1
-        assert response.email == "test@example.com"
-        assert response.username == "testuser"
-        assert "password" not in response.model_dump()
+        assert user.name == "validuser"
 
-class TestItemSchemas:
-    """Test Pydantic schemas for Item"""
-    
-    def test_valid_item_create(self):
-        """Test valid item creation schema"""
-        item_data = {
-            "name": "Test Product",
-            "description": "A great product",
-            "price": 49.99
-        }
-        item = ItemCreate(**item_data)
-        
-        assert item.name == "Test Product"
-        assert item.price == 49.99
-    
-    def test_item_price_positive(self):
-        """Test price must be positive"""
-        item_data = {
-            "name": "Product",
-            "description": "Test",
-            "price": -5.00
-        }
-        
-        with pytest.raises(ValidationError) as exc_info:
-            ItemCreate(**item_data)
-        
-        assert "ensure this value is greater than 0" in str(exc_info.value)
-    
-    def test_item_name_required(self):
-        """Test name is required"""
-        item_data = {
-            "description": "Test",
-            "price": 10.00
-        }
-        
+    def test_invalid_email(self):
         with pytest.raises(ValidationError):
-            ItemCreate(**item_data)
+            UserCreateSchema(email="notanemail", name="user", password="pass123")
+
+    def test_missing_required_fields(self):
+        with pytest.raises(ValidationError):
+            UserCreateSchema(email="user@example.com")
+
+class TestProjectSchemas:
+    def test_valid_project_create(self):
+        project = ProjectCreateSchema(title="My Project", description="desc")
+        assert project.title == "My Project"
+        assert project.description == "desc"
+
+    def test_description_optional(self):
+        project = ProjectCreateSchema(title="No desc project")
+        assert project.description is None
+
+    def test_missing_title(self):
+        with pytest.raises(ValidationError):
+            ProjectCreateSchema(description="no title")
+
+class TestTaskSchemas:
+    def test_valid_task_create(self):
+        task = TaskCreateSchema(title="Fix bug", priority="high")
+        assert task.title == "Fix bug"
+        assert task.priority == TaskPriority.high
+
+    def test_invalid_priority(self):
+        with pytest.raises(ValidationError):
+            TaskCreateSchema(title="Task", priority="urgent")
+
+    def test_optional_fields(self):
+        task = TaskCreateSchema(title="Minimal task", priority="low")
+        assert task.due_date is None
+        assert task.assignee_id is None
