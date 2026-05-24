@@ -8,9 +8,14 @@ class TaskStatus(str, Enum):
     in_progress = "in_progress"
     done = "done"
 
+class TaskPriority(str, Enum):
+    low = "low"
+    medium = "medium"
+    high = "high"
+
 class TaskBase(BaseModel):
     title: str
-    priority: str
+    priority: TaskPriority = TaskPriority.medium
     assignee_id: Optional[int] = None
     due_date: Optional[datetime] = None
 
@@ -20,5 +25,7 @@ class TaskCreateSchema(TaskBase):
 class TaskResponseSchema(TaskBase):
     id: int
     status: TaskStatus = TaskStatus.todo
+    created_at: datetime
+
     class Config:
         from_attributes = True

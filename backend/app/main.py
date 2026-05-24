@@ -2,7 +2,7 @@ from fastapi import FastAPI, Depends
 from .routers import auth, projects, tasks
 import uvicorn
 from .dependencies import get_current_user
-from .database import User
+from .models import User
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(

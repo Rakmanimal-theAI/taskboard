@@ -2,7 +2,7 @@ from ..dependencies import get_current_user, get_db
 from ..schemas.task import TaskCreateSchema, TaskResponseSchema
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from ..database import Task, Project
+from ..models import Task, Project
 
 router = APIRouter(
     prefix="/api", 
@@ -39,7 +39,7 @@ async def create(project_id: int, task: TaskCreateSchema, db: Session = Depends(
         title = task.title,
         priority = task.priority,
         due_date = task.due_date,
-        assignee_id=current_user.id,
+        assignee_id=task.assignee_id or current_user.id,
         project_id = project_id,
         status = "todo"
     )
@@ -49,7 +49,7 @@ async def create(project_id: int, task: TaskCreateSchema, db: Session = Depends(
     return new_task
 
 # Update a task
-@router.put("/projects/{project_id}/tasks/{id}")
+@router.put("/projects/{project_id}/tasks/{id}", response_model=TaskResponseSchema)
 async def update(project_id: int, id: int, task:TaskCreateSchema, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
     project = db.query(Project).filter(Project.id == project_id, Project.owner_id == current_user.id).first()
     if not project:
@@ -62,7 +62,7 @@ async def update(project_id: int, id: int, task:TaskCreateSchema, db: Session = 
     task_updated.due_date = task.due_date
     db.commit()
     db.refresh(task_updated)
-    return {"message": "Task updated"}
+    return task_updated 
     
 
 # Delete a task

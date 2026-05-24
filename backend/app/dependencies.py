@@ -1,7 +1,8 @@
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi import Depends, HTTPException
 from sqlalchemy.orm import Session
-from .database import SessionLocal, User
+from .models import User
+from .database import SessionLocal
 from dotenv import load_dotenv
 from jose import jwt
 import os

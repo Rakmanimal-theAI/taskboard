@@ -1,16 +1,16 @@
 from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime
 from sqlalchemy.orm import relationship
-from datetime import datetime
+from sqlalchemy.sql import func
 from app.database import Base
 
 class Project(Base):
     __tablename__ = "projects"
 
-    id = Column(Integer, primary_key=True, index=True)
-    title = Column(String, nullable=False)
+    id = Column(Integer, primary_key=True)
+    title = Column(String(100), nullable=False)
     description = Column(Text, nullable=True)
-    owner_id = Column(Integer, ForeignKey("users.id"))
-    created_at = Column(DateTime, default=datetime.utcnow)
+    owner_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    created_at = Column(DateTime, default=func.now())
 
-    tasks = relationship("Task", back_populates="project")
     owner = relationship("User", back_populates="projects")
+    tasks = relationship("Task", back_populates="project")
