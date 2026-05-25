@@ -27,14 +27,10 @@ class TestSummaryRoute:
         assert response.json()["summary"] == "The project is progressing well."
 
     def test_summary_no_tasks(self, client, auth_headers, created_project):
-        mock_response = MagicMock()
-
-        with patch("httpx.AsyncClient.post", new_callable=AsyncMock, return_value=mock_response):
-            response = client.post(
-                f"/api/projects/{created_project['id']}/summary",
-                headers=auth_headers
-            )
-
+        response = client.post(
+            f"/api/projects/{created_project['id']}/summary",
+            headers=auth_headers
+        )
         assert response.status_code == 400
         assert "No tasks" in response.json()["detail"]
 
