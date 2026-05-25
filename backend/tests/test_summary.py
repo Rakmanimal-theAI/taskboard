@@ -1,20 +1,22 @@
 import pytest
-from unittest.mock import patch, AsyncMock
+from unittest.mock import patch, AsyncMock, MagicMock
 
 class TestSummaryRoute:
     def test_summary_success(self, client, auth_headers, created_project):
-        # Create a task first so there's something to summarise
         client.post(
             f"/api/projects/{created_project['id']}/tasks",
             json={"title": "Build login page", "priority": "high"},
             headers=auth_headers
         )
 
-        mock_response = AsyncMock()
+        # Use MagicMock for the response object (it's not awaited itself)
+        # but raise_for_status must be a regular Mock since it's called with await
+        mock_response = MagicMock()
         mock_response.json.return_value = {"response": "The project is progressing well."}
-        mock_response.raise_for_status = AsyncMock()
+        mock_response.raise_for_status = MagicMock()  # not AsyncMock
 
-        with patch("httpx.AsyncClient.post", return_value=mock_response):
+        # The post method itself is awaited, so it must be AsyncMock
+        with patch("httpx.AsyncClient.post", new_callable=AsyncMock, return_value=mock_response):
             response = client.post(
                 f"/api/projects/{created_project['id']}/summary",
                 headers=auth_headers
@@ -25,9 +27,9 @@ class TestSummaryRoute:
         assert response.json()["summary"] == "The project is progressing well."
 
     def test_summary_no_tasks(self, client, auth_headers, created_project):
-        mock_response = AsyncMock()
+        mock_response = MagicMock()
 
-        with patch("httpx.AsyncClient.post", return_value=mock_response):
+        with patch("httpx.AsyncClient.post", new_callable=AsyncMock, return_value=mock_response):
             response = client.post(
                 f"/api/projects/{created_project['id']}/summary",
                 headers=auth_headers
@@ -44,7 +46,7 @@ class TestSummaryRoute:
             headers=auth_headers
         )
 
-        with patch("httpx.AsyncClient.post", side_effect=httpx.ConnectError("unreachable")):
+        with patch("httpx.AsyncClient.post", new_callable=AsyncMock, side_effect=httpx.ConnectError("unreachable")):
             response = client.post(
                 f"/api/projects/{created_project['id']}/summary",
                 headers=auth_headers
