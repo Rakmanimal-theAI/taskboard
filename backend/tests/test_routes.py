@@ -123,3 +123,73 @@ class TestTaskRoutes:
         assert response.status_code == 200
         get_response = client.get(f"/api/projects/{created_project['id']}/tasks", headers=auth_headers)
         assert len(get_response.json()) == 0
+
+class TestProjectSecurity:
+    def test_user_cannot_access_other_users_project(self, client, created_project, sample_user_data):
+        # Register a second user and log in
+        client.post("/auth/register", json={
+            "email": "other@example.com",
+            "name": "otheruser",
+            "password": "password123"
+        })
+        login = client.post("/auth/login", json={
+            "email": "other@example.com",
+            "password": "password123"
+        })
+        other_headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+
+        response = client.get(
+            f"/api/projects/{created_project['id']}",
+            headers=other_headers
+        )
+        assert response.status_code == 404  # Should not expose it exists
+
+    def test_user_cannot_delete_other_users_project(self, client, created_project):
+        client.post("/auth/register", json={
+            "email": "attacker@example.com",
+            "name": "attacker",
+            "password": "password123"
+        })
+        login = client.post("/auth/login", json={
+            "email": "attacker@example.com",
+            "password": "password123"
+        })
+        other_headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+
+        response = client.delete(
+            f"/api/projects/{created_project['id']}",
+            headers=other_headers
+        )
+        assert response.status_code == 404
+
+class TestTaskStatus:
+    def test_update_task_status(self, client, auth_headers, created_project):
+        create = client.post(
+            f"/api/projects/{created_project['id']}/tasks",
+            json={"title": "A task", "priority": "medium"},
+            headers=auth_headers
+        )
+        task_id = create.json()["id"]
+
+        response = client.put(
+            f"/api/projects/{created_project['id']}/tasks/{task_id}",
+            json={"title": "A task", "priority": "medium", "status": "in_progress"},
+            headers=auth_headers
+        )
+        assert response.status_code == 200
+        assert response.json()["status"] == "in_progress"
+
+    def test_invalid_task_status(self, client, auth_headers, created_project):
+        create = client.post(
+            f"/api/projects/{created_project['id']}/tasks",
+            json={"title": "A task", "priority": "medium"},
+            headers=auth_headers
+        )
+        task_id = create.json()["id"]
+
+        response = client.put(
+            f"/api/projects/{created_project['id']}/tasks/{task_id}",
+            json={"title": "A task", "priority": "medium", "status": "invalid_status"},
+            headers=auth_headers
+        )
+        assert response.status_code == 422
