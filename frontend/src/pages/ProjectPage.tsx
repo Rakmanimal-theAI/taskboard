@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getProject } from '../api/projects'
+import { getProject, summariseProject } from '../api/projects'
 import { getTasks, updateTask, createTask, deleteTask } from '../api/tasks'
 import type { TaskResponse, TaskCreate } from '../api/tasks'
+
 import {
   DndContext,
   DragOverlay,
@@ -143,6 +144,9 @@ const ProjectPage = () => {
   const queryClient = useQueryClient()
   const [activeTask, setActiveTask] = useState<TaskResponse | null>(null)
 
+  const [summary, setSummary] = useState<string | null>(null)
+  const [summarising, setSummarising] = useState(false)
+
   const sensors = useSensors(useSensor(PointerSensor, {
     activationConstraint: { distance: 5 }
   }))
@@ -217,23 +221,53 @@ const ProjectPage = () => {
     })
   }
 
+  const handleSummarise = async () => {
+    setSummarising(true)
+    setSummary(null)
+    try {
+      const result = await summariseProject(projectId)
+      setSummary(result.summary)
+    } catch (error: any) {
+      const detail = error?.response?.data?.detail
+      setSummary(`Error: ${detail ?? error?.message ?? 'Unknown error'}`)
+    } finally {
+      setSummarising(false)
+    }
+  }
+
   const tasksByStatus = (status: TaskStatus) => tasks.filter(t => t.status === status)
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b border-gray-200 px-8 py-4 flex items-center gap-4">
-        <button
-          onClick={() => navigate('/dashboard')}
-          className="text-gray-500 hover:text-gray-800 transition-colors"
-        >
-          ← Back
-        </button>
-        <div>
-          <h1 className="text-xl font-semibold text-gray-800">{project?.title}</h1>
-          {project?.description && (
-            <p className="text-sm text-gray-500">{project.description}</p>
-          )}
+      <header className="bg-white border-b border-gray-200 px-8 py-4">
+        <div className="flex items-center gap-4 justify-between">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="text-gray-500 hover:text-gray-800 transition-colors"
+            >
+              ← Back
+            </button>
+            <div>
+              <h1 className="text-xl font-semibold text-gray-800">{project?.title}</h1>
+              {project?.description && (
+                <p className="text-sm text-gray-500">{project.description}</p>
+              )}
+            </div>
+          </div>
+          <button
+            onClick={handleSummarise}
+            disabled={summarising}
+            className="bg-purple-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-purple-700 transition-colors disabled:opacity-50"
+          >
+            {summarising ? 'Summarising...' : '✨ Summarise project'}
+          </button>
         </div>
+        {summary && (
+          <div className="mt-3 bg-purple-50 border border-purple-200 rounded-lg px-4 py-3 text-sm text-gray-700">
+            {summary}
+          </div>
+        )}
       </header>
 
       <main className="px-8 py-6 flex flex-col gap-6">

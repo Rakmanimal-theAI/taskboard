@@ -39,3 +39,10 @@ export const deleteProject = async(id: number): Promise<ProjectMessage> => {
     const response = await apiClient.delete<ProjectMessage>(`/api/projects/${id}`)
     return response.data
 }
+
+export async function summariseProject(projectId: number) {
+    const response = await apiClient.post(`/api/projects/${projectId}/summary`, {}, {
+        timeout: 120000 // 2 minutes — Ollama can be slow, especially on first load
+    })
+    return response.data
+  }

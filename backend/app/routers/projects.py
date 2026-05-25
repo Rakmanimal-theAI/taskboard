@@ -2,7 +2,8 @@ from ..dependencies import get_current_user, get_db
 from ..schemas.project import ProjectCreateSchema, ProjectResponseSchema
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from ..models import Project
+from ..models import Project, Task
+import httpx
 
 router = APIRouter(
     prefix="/api", 
@@ -58,3 +59,40 @@ async def delete(id: int, db: Session = Depends(get_db), current_user = Depends(
     db.delete(project)
     db.commit()
     return {"message": "Project deleted"}
+
+@router.post("/projects/{id}/summary")
+async def summarise_project(id: int, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+    project = db.query(Project).filter(Project.id == id, Project.owner_id == current_user.id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    tasks = db.query(Task).filter(Task.project_id == id).all()
+    if not tasks:
+        raise HTTPException(status_code=400, detail="No tasks to summarise")
+
+    task_lines = "\n".join([f"- [{t.status}] {t.title} (priority: {t.priority})" for t in tasks])
+    prompt = f"""You are a project manager assistant. Summarise the following tasks for project "{project.title}" in 2-3 sentences. Be concise and focus on overall progress and any concerns.
+
+Tasks:
+{task_lines}"""
+
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                "http://host.docker.internal:11434/api/generate",  # <- fix here
+                json={
+                    "model": "llama3.2",
+                    "prompt": prompt,
+                    "stream": False
+                },
+                timeout=60.0
+            )
+            response.raise_for_status()
+            result = response.json()
+            return {"summary": result["response"]}
+    except httpx.ConnectError:
+        raise HTTPException(status_code=503, detail="Cannot reach Ollama — is it running on the host?")
+    except httpx.TimeoutException:
+        raise HTTPException(status_code=504, detail="Ollama timed out — model may still be loading")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ollama error: {str(e)}")
